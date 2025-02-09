@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MySenza - Ordini</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .product {
+            background: white;
+            padding: 15px;
+            margin: 10px auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 300px;
+        }
+        .product img {
+            width: 120px;
+            height: auto;
+            border-radius: 10px;
+            display: block;
+            margin: auto;
+        }
+        select, input {
+            font-size: 16px;
+            padding: 5px;
+            width: 90%;
+            margin-top: 5px;
+        }
+        .cart-container {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+            margin: auto;
+        }
+        .cart-summary {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .clear-cart {
+            background-color: #dc3545;
+        }
+        .clear-cart:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Ordina i Tuoi Profumi</h1>
+    
+    <div id="products-container"></div>
+
+    <div class="cart-container">
+        <h2>🛒 Carrello <span id="cart-count">(0)</span></h2>
+        <ul id="cart-items"></ul>
+        <p class="cart-summary">Totale: <span id="cart-total">0.00€</span></p>
+        <button onclick="confirmOrder()">📩 Invia Ordine</button>
+        <button class="clear-cart" onclick="clearCart()">🗑️ Svuota Carrello</button>
+    </div>
+
+    <script>
+        const products = [
+            { name: "Vigna Rossa", img: "vigna_rossa.png" },
+            { name: "Citri Fructus", img: "citri_fructus.png" },
+            { name: "Eucalipto", img: "eucalipto.png" },
+            { name: "Vaniglia Nera", img: "vaniglia_nera.png" },
+            { name: "Lavanda Menta", img: "lavanda_menta.png" },
+            { name: "Risveglio", img: "risveglio.png" },
+            { name: "Oltremare", img: "oltremare.png" },
+            { name: "Incanto", img: "incanto.png" },
+            { name: "Sapientia", img: "sapientia.png" },
+            { name: "Vanilime", img: "vanilime.png" },
+            { name: "Anima", img: "anima.png" },
+            { name: "03 Fiori", img: "03_fiori.png", bucato: true },
+            { name: "10 Brezza", img: "10_brezza.png", bucato: true },
+            { name: "20 Tramonto", img: "20_tramonto.png", bucato: true }
+        ];
+
+        function generateProductHTML() {
+            let container = document.getElementById("products-container");
+            container.innerHTML = "";
+            products.forEach(product => {
+                let options = product.bucato 
+                    ? `<option value="500ml">500ml - 18€</option>`
+                    : `<option value="200ml">200ml - 20€</option>
+                       <option value="500ml">500ml - 35€</option>`;
+                
+                container.innerHTML += `
+                    <div class="product">
+                        <img src="${product.img}" alt="${product.name}">
+                        <h3>${product.name}</h3>
+                        <select id="size-${product.name}">${options}</select>
+                        <input type="number" id="quantity-${product.name}" value="1" min="1">
+                        <button onclick="addToCart('${product.name}')">🛒 Aggiungi al Carrello</button>
+                    </div>`;
+            });
+        }
+
+        function addToCart(productName) {
+            let size = document.getElementById(`size-${productName}`).value;
+            let quantity = document.getElementById(`quantity-${productName}`).value;
+            if (quantity == 0) return;
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            cart.push({ name: productName, size, quantity });
+            localStorage.setItem("cart", JSON.stringify(cart));
+            updateCart();
+        }
+
+        function updateCart() {
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            let cartList = document.getElementById("cart-items");
+            let cartTotal = document.getElementById("cart-total");
+            cartList.innerHTML = "";
+            let total = 0;
+            cart.forEach(item => {
+                let price = item.size === "200ml" ? 20 : item.size === "500ml" ? (products.find(p => p.name === item.name).bucato ? 18 : 35) : 0;
+                total += price * item.quantity;
+                cartList.innerHTML += `🔵 *${item.name}* ${item.size} x ${item.quantity} = *${price * item.quantity}€*\n`;
+            });
+            document.getElementById("cart-count").textContent = `(${cart.length})`;
+            cartTotal.textContent = `${total.toFixed(2)}€`;
+        }
+
+        function confirmOrder() {
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            if (cart.length === 0) return;
+
+            let message = `🟢 *ORDINE MYSENZA1* 🟢\n\n`;
+            message += `📌 *Ciao! Ecco il mio ordine:*\n\n`;
+
+            cart.forEach(item => {
+                let price = item.size === "200ml" ? 20 : item.size === "500ml" ? (products.find(p => p.name === item.name).bucato ? 18 : 35) : 0;
+                message += `🔵 *${item.name}* ${item.size} x ${item.quantity} = *${price * item.quantity}€*\n`;
+            });
+
+            message += `------------------------------------\n`;
+            message += `🛍️ *TOTALE ORDINE:* *${document.getElementById("cart-total").textContent}*\n`;
+            message += `------------------------------------\n\n`;
+            message += `📩 *Attendo conferma, grazie!* 🚀\n\n`;
+
+            window.open(`https://wa.me/393717771328?text=${encodeURIComponent(message)}`, "_blank");
+
+            clearCart();
+        }
+
+        function clearCart() {
+            localStorage.removeItem("cart");
+            updateCart();
+        }
+
+        generateProductHTML();
+        updateCart();
+    </script>
+</body>
+</html>
